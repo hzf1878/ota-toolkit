@@ -205,14 +205,6 @@ export https_proxy=http://127.0.0.1:7890
 git -c http.proxy=http://127.0.0.1:7890 push
 ```
 
-**生图代理等服务要在后台常驻**
-
-用 `nohup` 或 `setsid`：
-
-```sh
-setsid ./venv/bin/python 服务.py > 日志.log 2>&1 < /dev/null &
-```
-
 ---
 
 ### 从零开始的完整流程
