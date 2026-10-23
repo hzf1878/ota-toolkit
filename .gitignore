@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# 机型库缓存（运行时自动下载）
+romdb/
+*.tmp
+
+# 输出
+ota_out/
+out/
+*.img
+*.zip
+*.bin
+
+# 日志
+*.log
+*.pid
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# 本地覆盖
+.env
+.env.local

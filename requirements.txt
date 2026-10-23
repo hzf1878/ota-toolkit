@@ -1,0 +1,6 @@
+cryptography==44.0.2
+remotezip
+requests
+# pycryptodome
+# beautifulsoup4
+# protobuf
