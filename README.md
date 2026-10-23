@@ -1,4 +1,4 @@
-# OPPO / 一加 / realme / Vivo / IQOO / 小米 / 红米 / 联想 / 荣耀 OTA 工具集
+# OPPO / 一加 / realme / Vivo / iQOO / 小米 / 红米 / 联想 / 荣耀 OTA 工具集
 
 一套完整的 OTA 查询与提取工具链，支持国行官方包查询、动态链接解析、分区镜像直读提取。
 
