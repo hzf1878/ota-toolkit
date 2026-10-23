@@ -34,9 +34,10 @@ ROMER_API = "https://rom.yule.ink/api/ota/catalog"
 ROMER_CACHE = "/tmp/romer_catalog.json"
 ROMER_TTL = 3600
 
+_HERE = os.path.dirname(os.path.abspath(__file__))
 PDG = os.environ.get("PDG", "/workspace/payload-dumper/pdg")
-OUTDIR = os.environ.get("OUTDIR", "/workspace/ota_out")
-TRACKER_DIR = "/workspace/oplus"
+OUTDIR = os.environ.get("OUTDIR", os.path.join(os.getcwd(), "ota_out"))
+TRACKER_DIR = os.environ.get("TRACKER_DIR", _HERE)
 TRACKER_PY = os.path.join(TRACKER_DIR, "venv/bin/python")
 TRACKER = os.path.join(TRACKER_DIR, "tomboy_pro.py")
 

@@ -5,6 +5,7 @@
 ## 目录
 
 - [快速开始](#快速开始)
+- [安装](#安装)
 - [工具组成](#工具组成)
 - [机型库](#机型库)
 - [ota.py 一键工具](#otapy-一键工具)
@@ -17,16 +18,222 @@
 ## 快速开始
 
 ```sh
-cd /workspace/oplus
+git clone https://github.com/hzf1878/ota-toolkit.git
+cd ota-toolkit
+
+# 装环境（创建 venv + 装依赖 + 同步机型库）
+chmod +x setup.sh && ./setup.sh
 
 # 查某机型最新版下载链接
-./ota.py link PJZ110
+./venv/bin/python ota.py link PJZ110
 
 # 也可以直接写中文名
-./ota.py link "一加 13"
+./venv/bin/python ota.py link "一加 13"
 
-# 一步提取指定分区
-./ota.py get PJZ110 dtbo,boot,init_boot
+# 提取指定分区（需要先装 pdg，见「安装」章节）
+./venv/bin/python ota.py get PJZ110 dtbo,boot,init_boot
+```
+
+---
+
+## 安装
+
+### 环境要求
+
+| 项 | 最低版本 | 说明 |
+|---|---|---|
+| Python | **3.8+** | 推荐 3.10 以上 |
+| pip | 随 Python | |
+| git | 任意 | 仅克隆仓库时需要 |
+| 磁盘 | ~50 MB | venv + 机型库缓存 |
+
+操作系统：**Linux / macOS** 直接可用；Windows 需用 WSL 或 Git Bash。
+
+### 一、获取代码
+
+```sh
+git clone https://github.com/hzf1878/ota-toolkit.git
+cd ota-toolkit
+```
+
+或直接下载 zip 解压。
+
+### 二、一键初始化（推荐）
+
+```sh
+chmod +x setup.sh
+./setup.sh
+```
+
+脚本会完成：
+
+1. 检查 Python 版本
+2. 创建 `venv/` 虚拟环境
+3. 安装 `requirements.txt` 里的依赖
+4. 同步机型库到 `romdb/`
+
+### 三、手动安装
+
+想自己控制每一步的话：
+
+```sh
+# 1. 创建虚拟环境
+python3 -m venv venv
+
+# 2. 安装依赖
+./venv/bin/python -m pip install --upgrade pip
+./venv/bin/python -m pip install -r requirements.txt
+
+# 3. 同步机型库（约 100 KB，5 个文件）
+./venv/bin/python ota.py models sync
+```
+
+`requirements.txt` 内容：
+
+```
+requests
+cryptography
+remotezip
+```
+
+### 四、验证安装
+
+```sh
+# 机型库是否就绪
+./venv/bin/python ota.py models list
+# 期望输出：共 1800+ 条机型记录
+
+# 查一个机型试试
+./venv/bin/python ota.py models search "一加 13"
+```
+
+`ota.py` 是纯 Python 脚本，可直接执行（shebang 指向 `python3`）；
+如果系统 Python 缺依赖，用 `./venv/bin/python ota.py ...` 调用。
+
+---
+
+### 可选：安装 pdg（分区提取）
+
+**只有 `get` 命令需要它**。`link`、`parts`、`models` 不装 pdg 也能用。
+
+`pdg` 是本项目的 [payload-dumper-go](https://github.com/ssut/payload-dumper-go)
+改造版，增加了 HTTP Range 直读能力（不用下整包就能提取指定分区）。
+
+#### 方式一：用现成二进制
+
+从上游下载：
+
+```sh
+mkdir -p ~/payload-dumper && cd ~/payload-dumper
+curl -L -o pdg.tar.gz \
+  https://github.com/ssut/payload-dumper-go/releases/download/2.1.0/payload-dumper-go_2.1.0_linux_arm64.tar.gz
+tar xzf pdg.tar.gz
+chmod +x payload-dumper-go
+```
+
+注意：上游二进制是 glibc 编译的，**Alpine 等 musl 系统需自行编译**（见下）。
+
+#### 方式二：从源码编译（支持 musl）
+
+```sh
+# Alpine 装依赖
+apk add --no-cache go gcc musl-dev xz-dev
+
+# 编译
+git clone --depth 1 -b 2.1.0 https://github.com/ssut/payload-dumper-go.git
+cd payload-dumper-go
+sed -i 's/^go 1.27.0$/go 1.26.0/' go.mod    # 老 Go 版本需要这步
+CGO_ENABLED=1 GOFLAGS=-mod=mod GOTOOLCHAIN=local \
+  GOPROXY=https://goproxy.cn,direct GOSUMDB=off \
+  go build -o pdg .
+```
+
+编译时必须开 `CGO_ENABLED=1` —— 它依赖 C 版 liblzma，纯 Go 的 xz 实现慢几十倍。
+
+#### 指定 pdg 路径
+
+未设置 `PDG` 时默认找 `/workspace/payload-dumper/pdg`（作者环境路径），
+请按自己的实际位置设置：
+
+```sh
+export PDG=/path/to/pdg
+```
+
+---
+
+### 常见安装问题
+
+**`pip install` 报 `externally-managed-environment`**
+
+系统 Python 被包管理器锁定了。用 venv 就行（本项目默认这么做）：
+
+```sh
+python3 -m venv venv
+./venv/bin/python -m pip install -r requirements.txt
+```
+
+**`pip` 卡在 `proxy.golang.org` / PyPI 超时**
+
+国内网络换源：
+
+```sh
+./venv/bin/python -m pip install -r requirements.txt \
+  -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
+**`models sync` 全部失败**
+
+机型库从 GitHub 拉取，国内可能连不上。脚本会自动尝试三个镜像
+（`gh-proxy.com` → `ghfast.top` → 直连），全挂时检查：
+
+```sh
+curl -I https://gh-proxy.com/
+```
+
+如果有代理：
+
+```sh
+export https_proxy=http://127.0.0.1:7890
+./venv/bin/python ota.py models sync --force
+```
+
+**`git push` 连不上 github.com**
+
+`curl https://github.com` 返回 000 说明直连不通，走代理：
+
+```sh
+git -c http.proxy=http://127.0.0.1:7890 push
+```
+
+**生图代理等服务要在后台常驻**
+
+用 `nohup` 或 `setsid`：
+
+```sh
+setsid ./venv/bin/python 服务.py > 日志.log 2>&1 < /dev/null &
+```
+
+---
+
+### 从零开始的完整流程
+
+```sh
+# 1. 拉代码
+git clone https://github.com/hzf1878/ota-toolkit.git
+cd ota-toolkit
+
+# 2. 装环境
+chmod +x setup.sh && ./setup.sh
+
+# 3. 验证
+./venv/bin/python ota.py models search "一加 13"
+
+# 4. 查链接（不需要 pdg）
+./venv/bin/python ota.py link PJZ110 --c16
+
+# 5. 装 pdg 后提取分区
+export PDG=/path/to/pdg
+./venv/bin/python ota.py get PJZ110 init_boot --c16
 ```
 
 ---
@@ -117,7 +324,7 @@ $ ./ota.py link "一加 13"
 
 | 变量 | 默认值 | 说明 |
 |---|---|---|
-| `ROMDB_DIR` | `/workspace/oplus/romdb` | 机型库缓存目录 |
+| `ROMDB_DIR` | `./romdb`（脚本同级） | 机型库缓存目录 |
 
 ---
 
@@ -130,7 +337,7 @@ $ ./ota.py link "一加 13"
 | `romer.py` | 查 ROMer 索引库（第三方整理，覆盖广） |
 | `tomboy_pro.py` | 查官方 OTA 接口（实时，CN 区权威） |
 | `C16_transer.py` | 解析 `downloadCheck?` 动态链接 → 真实 zip 地址 |
-| `/workspace/payload-dumper/pdg` | HTTP Range 直读提取分区，不用下整包 |
+| `pdg`（外部依赖） | HTTP Range 直读提取分区，不用下整包，见「安装」 |
 | `venv/` | Python 环境（requests / cryptography / remotezip） |
 | `romdb/` | 机型库缓存（MobileModels 的 `.md` 文件） |
 
@@ -217,12 +424,12 @@ OTA:      PJZ110_11.F.07_2070_202610080010
 
 分支字母与 ColorOS 的对应关系见[机型库](#机型库)章节。
 
-输出到 `$OUTDIR/<型号>[_c版本]/`，默认 `$OUTDIR` 为 `/workspace/ota_out/`。
+输出到 `$OUTDIR/<型号>[_c版本]/`，`$OUTDIR` 默认为当前目录下的 `ota_out/`。
 
 环境变量可覆盖：
 
 ```sh
-PDG=/path/to/pdg OUTDIR=/workspace/myout ./ota.py get PJZ110 dtbo --c16
+PDG=/path/to/pdg OUTDIR=./myout ./venv/bin/python ota.py get PJZ110 dtbo --c16
 ```
 
 ---
@@ -314,11 +521,11 @@ PDG=/path/to/pdg OUTDIR=/workspace/myout ./ota.py get PJZ110 dtbo --c16
 
 ```sh
 ./ota.py get PJZ110 dtbo
-# → /workspace/ota_out/PJZ110/dtbo.img
+# → ./ota_out/PJZ110/dtbo.img
 
 # 指定要 C16 版本
 ./ota.py get PJZ110 dtbo --c16
-# → /workspace/ota_out/PJZ110_c16/dtbo.img
+# → ./ota_out/PJZ110_c16/dtbo.img
 
 # 也可以用中文名
 ./ota.py get "一加 13" dtbo --c16
@@ -352,7 +559,7 @@ curl -s 'https://rom.yule.ink/api/ota/catalog?model=PJZ110' | python3 -m json.to
 
 ```sh
 # Linux 侧复制到共享目录
-cp /workspace/ota_out/PJZ110/*.img /workspace/share/
+cp ./ota_out/PJZ110/*.img /path/to/共享目录/
 
 # Android 侧再复制到下载目录
 cp /data/local/tmp/eta/share/*.img /storage/emulated/0/Download/
@@ -442,16 +649,3 @@ export https_proxy=http://127.0.0.1:7890
 - 动态地址（含 `downloadCheck?`）→ 需解析，且解析后的签名链接 10 分钟过期
 
 ---
-
-## 环境重建
-
-如果 `venv` 丢失：
-
-```sh
-cd /workspace/oplus
-python3 -m venv venv
-./venv/bin/python -m pip install requests cryptography remotezip
-```
-
-`pdg` 需要 Go + gcc + musl-dev + xz-dev，编译方法见
-`/workspace/payload-dumper/README-URL.md`。

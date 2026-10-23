@@ -22,7 +22,9 @@ import urllib.error
 import urllib.request
 
 # ---- 配置 ----
-DB_DIR = os.environ.get("ROMDB_DIR", "/workspace/oplus/romdb")
+# 默认把机型库放在脚本同级的 romdb/ 目录，方便移植
+_HERE = os.path.dirname(os.path.abspath(__file__))
+DB_DIR = os.environ.get("ROMDB_DIR", os.path.join(_HERE, "romdb"))
 MIRRORS = [
     "https://gh-proxy.com/https://raw.githubusercontent.com/KHwang9883/MobileModels/refs/heads/master/brands/{f}",
     "https://ghfast.top/https://raw.githubusercontent.com/KHwang9883/MobileModels/refs/heads/master/brands/{f}",
