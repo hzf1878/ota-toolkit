@@ -2,6 +2,16 @@
 
 一套完整的 OTA 查询与提取工具链，支持国行官方包查询、动态链接解析、分区镜像直读提取。
 
+支持品牌：OPPO · 一加 · realme · vivo · iQOO · 小米 · 红米 · 联想 · 荣耀 · Obric
+
+## 特性
+
+- **中文名直接查** —— `link "一加 13"` 自动解析成 `PJZ110`
+- **不下整包提取** —— HTTP Range 直读，取 25 MB 的 dtbo 不用先下 9 GB
+- **版本选择** —— `--c15/--c16/--c17` 指定 ColorOS 大版本
+- **机型库自动同步** —— 1848 条代号，多镜像回退
+- **双数据源** —— ROMer 索引（覆盖广）+ 官方接口（实时）
+
 ## 目录
 
 - [快速开始](#快速开始)
@@ -12,6 +22,7 @@
 - [各工具单独用法](#各工具单独用法)
 - [常见任务](#常见任务)
 - [故障排查](#故障排查)
+- [授权](#授权)
 
 ---
 
@@ -641,3 +652,27 @@ export https_proxy=http://127.0.0.1:7890
 - 动态地址（含 `downloadCheck?`）→ 需解析，且解析后的签名链接 10 分钟过期
 
 ---
+
+## 授权
+
+本仓库是**混合授权**：
+
+| 部分 | 授权 |
+|---|---|
+| 原创代码（`ota.py` / `models.py` / `romer.py` / `setup.sh`） | **MIT** |
+| 15 个来自 OPlus-Tracker 的文件 | **LGPL-3.0** |
+
+详见 [LICENSE](LICENSE) 与 [NOTICE.md](NOTICE.md)。
+
+## 免责声明
+
+本工具用于查询**个人设备**的官方固件、提取系统镜像用于学习与备份。
+
+刷写分区、修改系统文件存在风险，可能导致设备无法启动或数据丢失，
+使用者需自行承担后果。请遵守设备厂商服务条款及当地法律法规。
+
+## 相关项目
+
+- [OPlus-Tracker](https://github.com/JerryTse-OSS/OPlus-Tracker) — 本仓库部分工具的来源
+- [payload-dumper-go](https://github.com/ssut/payload-dumper-go) — 分区提取器上游
+- [MobileModels](https://github.com/KHwang9883/MobileModels) — 机型代号数据源
